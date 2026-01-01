@@ -1,27 +1,55 @@
-import gradio as gr
+import streamlit as st
+import tempfile
+import os
+from PIL import Image
 
-def rag_query_interface(query):
-    # Run RAG answer
-    answer = generate_answer(query, top_k=1, max_tokens=10)
 
-    # Retrieve top images
-    imgs = select_images_for_query(query, top_k_images=1, prefer_text_pages=True)
-    if len(imgs) == 0:
-        imgs = [blank_image]
+# from code import (
+#     extract_pdf_data,
+#     generate_answer,
+#     select_images_for_query,
+#     build_embeddings
+# )
 
-    return answer, imgs
 
-with gr.Blocks(title="Multimodal RAG with Phi-3 Vision") as demo:
-    gr.Markdown("#Multimodal RAG Demo (Text + Images + Phi-3 Vision)")
-    gr.Markdown("Ask a question about the PDF. The system will retrieve text + images and generate a grounded answer.")
+st.set_page_config(
+    page_title="Multimodal RAG (Phi-3 Vision)",
+    layout="wide",
+)
 
-    query_input = gr.Textbox(label="Enter your question", placeholder="e.g. What is self-attention?")
-    answer_output = gr.Textbox(label="Phi-3 Vision Answer")
+st.title(" Multimodal RAG with Phi-3 Vision")
+st.markdown("Upload a PDF and ask questions using text + images.")
 
-  
-    image_output = gr.Gallery(label="Retrieved Images (Relevant)")
 
-    submit_btn = gr.Button("Run RAG")
-    submit_btn.click(rag_query_interface, inputs=query_input, outputs=[answer_output, image_output])
+uploaded_file = st.file_uploader(
+    "Upload a PDF document",
+    type=["pdf"]
+)
 
-demo.launch(debug=True, share=True)
+if uploaded_file:
+    with st.spinner(" Processing PDF..."):
+        # Save temporarily
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp:
+            tmp.write(uploaded_file.read())
+            pdf_path = tmp.name
+
+
+        process_pdf(pdf_path)
+
+    st.success("PDF processed successfully!")
+
+
+    query = st.text_input("Ask a question about the document")
+
+    if query:
+        with st.spinner("🔍 Searching and reasoning..."):
+            answer = generate_answer(query, top_k=3, max_tokens=200)
+            
+
+        st.subheader(" Answer")
+        st.write(answer)
+
+
+
+else:
+    st.info(" Upload a PDF to begin")
